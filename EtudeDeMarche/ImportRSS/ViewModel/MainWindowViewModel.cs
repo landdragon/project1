@@ -1,77 +1,114 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Threading;
 using System.Xml.Linq;
+using CsvHelper;
 using ImportRSS.Annotations;
 using ImportRSS.Helpers;
+using ImportRSS.Model;
 
 namespace ImportRSS.ViewModel
 {
     public class MainWindowViewModel : INotifyPropertyChanged
 
     {
+        readonly List<string> Rss = new List<string>
+        {
+            "http://lbc2rss.superfetatoire.com/rss/60365-plessis.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60402-vincennes.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60403-villiers-sur-marne.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60404-champigny-sur-marne.rss","http://lbc2rss.superfetatoire.com/rss/60405-le-perreux-sur-marne.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60406-noisy-le-grand.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60407-fontenay-sous-bois.rss",
+
+        };
         public MainWindowViewModel()
         {
             RunCommand = new RelayCommand(Run);
+            ExportCommand = new RelayCommand(Export);
             _timer = new DispatcherTimer {Interval = TimeSpan.FromSeconds(1)};
             _timer.Tick += CollectData;
         }
 
         private void CollectData(object sender, EventArgs e)
         {
-            //var feedXML = XDocument.Load("http://lbc2rss.superfetatoire.com/rss/60358-test1-ventes-immobilieres-ile-de-france-occasions.rss");
-            var feedXML = XDocument.Load("http://lbc2rss.superfetatoire.com/rss/60365-plessis.rss");
+            AddLineLog("start CollectData");
+            foreach (var rss in Rss)
+            {
+                var feedXML = XDocument.Load(rss);
+                AnalyzeRss(feedXML);
+            }
+            AddLineLog("End CollectData");
 
+
+            Run(null);
+        }
+
+        private void AnalyzeRss(XDocument feedXML)
+        {
             var channel = feedXML.Descendants("channel").First();
-            AddLineLog("Channel title : " + channel.Element("title").Value);
-            AddLineLog("Refresh date : " + channel.Element("pubDate").Value);
+            var title = channel.Element("title").Value;
+
+            AddLineLog($"start analyze {title}");
+            var listElement = new List<Element>();
             foreach (var descendant in feedXML.Descendants("item"))
             {
-                AddLineLog(" title : " + descendant.Element("title").Value);
-                AnalyseUrl(descendant.Element("link").Value);
-                XElement description = descendant.Element("description");
-                AnayseDescription(description.Value);
-                AddLineLog(" Date de creation : " + descendant.Element("pubDate").Value);
+                var element = AnalyzeElement(descendant);
+                listElement.Add(element);
+                OnPropertyChanged(nameof(Elements));
             }
+            Elements.AddRange(listElement);
+            var date = DateTime.Parse(channel.Element("pubDate").Value);
+            ExportRss($"{title}.{date.ToString("yyyy-MM-dd hh.mm.ss")}.csv", listElement);
+
+            AddLineLog($"End analyze {title}");
         }
 
-        private async void AnalyseUrl(string url)
+        private Element AnalyzeElement(XElement descendant)
         {
-            AddLineLog(" URL : " + url);
-            HttpClient http = new HttpClient();
-            var response = await http.GetByteArrayAsync(url);
-            String source = Encoding.GetEncoding("iso-8859-1").GetString(response, 0, response.Length - 1);
+            var element = new Element {Title = descendant.Element("title").Value};
+            AnalyseUrl(descendant.Element("link").Value, element);
+            XElement description = descendant.Element("description");
+            AnayseDescription(description.Value, element);
+            element.DateCreation = DateTime.Parse(descendant.Element("pubDate").Value);
+            return element;
+        }
+
+        private void AnalyseUrl(string url, Element element)
+        {
+            element.Url = url;
+            var http = new HttpClient();
+            var response = http.GetByteArrayAsync(url).Result;
+            var source = Encoding.GetEncoding("iso-8859-1").GetString(response, 0, response.Length - 1);
             source = WebUtility.HtmlDecode(source);
             var descritionSplited = Regex.Match(source, @"itemprop=""description"">(.*)<\/p>");
-
-            AddLineLog($"  Vrai description : {descritionSplited.Groups[1].Value.Replace("<br>","\n")}");
-
-
+            element.Description = descritionSplited.Groups[1].Value.Replace("<br>", "\n");
         }
 
-        private void AnayseDescription(string descrition)
+        private void AnayseDescription(string descrition, Element element)
         {
-            AddLineLog(" description : ");
-            var descritionSplited = Regex.Match(descrition, @"<h2>(.*)<\/h2>.*<strong>Prix : <\/strong>(.*)<\/h3><p><strong>");
-
-            AddLineLog($"  Title : {descritionSplited.Groups[1].Value}");
-            AddLineLog($"  Prix : {descritionSplited.Groups[2].Value}");
-
+            var descritionSplited = Regex.Match(descrition, @"<h2>.*<\/h2>.*<strong>Prix : <\/strong>(.*)<\/h3><p><strong>");
+            element.Price = double.Parse(descritionSplited.Groups[1].Value);
         }
 
         private readonly DispatcherTimer _timer;
 
         #region action property
+
         public RelayCommand RunCommand { get; set; }
+        public RelayCommand ExportCommand { get; set; }
+
         #endregion //action property
+
         #region action Method
 
         private void Run(object param)
@@ -90,6 +127,26 @@ namespace ImportRSS.ViewModel
             }
         }
 
+        private void Export(object param)
+        {
+            AddLineLog("start Export");
+            ExportRss("file.csv", Elements);
+
+            AddLineLog("End Export");
+        }
+
+        private static void ExportRss(string fileName, IEnumerable<Element> listElement)
+        {
+            using (var csv = new CsvWriter(new StreamWriter(fileName, false, Encoding.UTF8)))
+            {
+                csv.Configuration.Delimiter = ";";
+                csv.Configuration.Encoding = Encoding.UTF8;
+                csv.WriteRecords(listElement);
+            }
+        }
+
+        #endregion //action Method
+
 
         private void AddLineLog(string log)
         {
@@ -98,9 +155,9 @@ namespace ImportRSS.ViewModel
             Log = logBuilder.ToString();
         }
 
-        #endregion //action Method
 
         private string _log;
+        private List<Element> _elements = new List<Element>();
 
         public string Log
         {
@@ -109,6 +166,16 @@ namespace ImportRSS.ViewModel
             {
                 _log = value;
                 OnPropertyChanged(nameof(Log));
+            }
+        }
+
+        public List<Element> Elements
+        {
+            get { return _elements; }
+            set
+            {
+                _elements = value;
+                OnPropertyChanged(nameof(Elements));
             }
         }
 

@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ImportRSS"
         xmlns:vm="clr-namespace:ImportRSS.ViewModel"
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525"
@@ -13,11 +12,27 @@
     </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"></RowDefinition>
-            <RowDefinition Height="*"></RowDefinition>
+            <RowDefinition Height="50"/>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
-
-        <Button Grid.Row="0" Command="{Binding RunCommand}" Content="{Binding ButtonRunName}" />
-        <TextBox Grid.Row="1" Background="Turquoise" Text="{Binding Log}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Button Grid.Row="0" Grid.Column="0" Command="{Binding RunCommand}" Content="{Binding ButtonRunName}" />
+        <Button Grid.Row="0" Grid.Column="1" Command="{Binding ExportCommand}" Content="Export" />
+        <ListView Grid.Row="1" Grid.ColumnSpan="2" Grid.Column="0" ItemsSource="{Binding Elements}">
+            <ListView.View>
+                <GridView AllowsColumnReorder="False">
+                    <GridViewColumn Header="Title" DisplayMemberBinding="{Binding Title}"/>
+                    <GridViewColumn Header="Price" DisplayMemberBinding="{Binding Price}"/>
+                    <GridViewColumn Header="Description" DisplayMemberBinding="{Binding Description}"/>
+                    <GridViewColumn Header="DateCreation" DisplayMemberBinding="{Binding DateCreation}"/>
+                    <GridViewColumn Header="Url" DisplayMemberBinding="{Binding Url}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <TextBox Grid.Row="2" Grid.ColumnSpan="2" Grid.Column="0" Background="Turquoise" Text="{Binding Log}" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
     </Grid>
 </Window>
