@@ -24,11 +24,28 @@ namespace ImportRSS.ViewModel
         readonly List<string> Rss = new List<string>
         {
             "http://lbc2rss.superfetatoire.com/rss/60365-plessis.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60536-plessislocation.rss",
+
             "http://lbc2rss.superfetatoire.com/rss/60402-vincennes.rss",
+"http://lbc2rss.superfetatoire.com/rss/60537-vincenneslocation.rss",
+
             "http://lbc2rss.superfetatoire.com/rss/60403-villiers-sur-marne.rss",
-            "http://lbc2rss.superfetatoire.com/rss/60404-champigny-sur-marne.rss","http://lbc2rss.superfetatoire.com/rss/60405-le-perreux-sur-marne.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60538-villiers-sur-marnelocation.rss",
+
+            "http://lbc2rss.superfetatoire.com/rss/60404-champigny-sur-marne.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60539-champigny-sur-marnelocation.rss",
+
+            "http://lbc2rss.superfetatoire.com/rss/60405-le-perreux-sur-marne.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60540-le-perreux-sur-marnelocation.rss",
+
             "http://lbc2rss.superfetatoire.com/rss/60406-noisy-le-grand.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60542-noisy-le-grandlocation.rss",
+
             "http://lbc2rss.superfetatoire.com/rss/60407-fontenay-sous-bois.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60543-fontenay-sous-boislocation.rss",
+
+            "http://lbc2rss.superfetatoire.com/rss/60522-lognes.rss",
+            "http://lbc2rss.superfetatoire.com/rss/60535-lognelocation.rss"
 
         };
         public MainWindowViewModel()
